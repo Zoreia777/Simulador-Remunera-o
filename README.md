@@ -1,2 +1,1 @@
-# Simulador-Remunera-o
-esse simulador ajuda a empresa a mostrar ao funcionário o seu valor e seu verdadeiro salário.
+O Simulador de Remuneração é uma plataforma interativa destinada a facilitar a compreensão dos diferentes componentes que compõem a remuneração dos nossos colaboradores. O seu objetivo principal é proporcionar uma visão clara e detalhada sobre como fatores como salário, bônus, benefícios e impostos se inter-relacionam e impactam a renda líquida que cada um recebe. 
