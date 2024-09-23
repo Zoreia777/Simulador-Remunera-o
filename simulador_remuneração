@@ -1,0 +1,491 @@
+import pandas as pd
+import tkinter as tk
+from tkinter import messagebox
+from tkinter import font
+from tkinter import PhotoImage
+import os
+import msoffcrypto
+from io import BytesIO
+
+from tkinter import ttk
+import ttkbootstrap as ttkb
+from ttkbootstrap.constants import *
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+
+# pyinstaller --onefile --noconsole --icon=icon/calculadora3.ico calculadora_remuneracao.py
+
+diretorio_atual = os.getcwd()
+ARQUIVO_ASSISTENCIAS = diretorio_atual + '/assistencias.xlsx'
+ICONE_JANELA = diretorio_atual + '/icon/calculadora3.png'
+senha = 'V3r@nis#68!tGzç'
+
+# Descriptografar o arquivo Excel
+try:
+    with open(ARQUIVO_ASSISTENCIAS, 'rb') as file:
+        decrypted = BytesIO()
+        office_file = msoffcrypto.OfficeFile(file)
+        office_file.load_key(password=senha)
+        office_file.decrypt(decrypted)
+        decrypted.seek(0)
+        tabela_dados = pd.read_excel(decrypted, sheet_name='BASE_DADOS')
+        tabela_beneficios = pd.read_excel(decrypted, sheet_name='BENEFICIOS')
+except FileNotFoundError:
+    messagebox.showerror("Erro", "Arquivo não encontrado.")
+    exit()
+except Exception as e:
+    messagebox.showerror("Erro", f"Erro ao ler o arquivo: {e}")
+    print(e)
+    exit()
+
+valor_locacao_carro_global = 0
+vale_combustivel_global = 0
+
+
+# ===================================================================================
+# ===================================== Funções =====================================
+# ===================================================================================
+
+def ao_abrir_janela():
+    ocultar_comissao()
+    ocultar_vt()
+    # ocultar_previdencia()
+    # ocultar_adc_noturno()
+
+def calcular_remuneracao():
+    try:
+        matricula = int(entry_matricula.get().strip())
+        assistencia_medica = obter_valor_coluna(matricula, 'ASSIST_MEDICA_MENSALIDADE')
+        assistencia_odontologica = obter_valor_coluna(matricula, 'ASSIST_ODONTO_MENSALIDADE')
+        cargo = obter_valor_coluna(matricula, 'CARGO')
+
+        if assistencia_medica == 0 and assistencia_odontologica == 0:
+            messagebox.showwarning("Matrícula não encontrada", f"A matrícula {matricula} não foi encontrada.")
+            return
+    
+        salario = float(entry_salario.get().replace(',', '.'))
+        vt_valor = float(entry_vt.get().replace(',', '.')) if var_vt.get() == 1 else 0
+        vr_va = float(entry_vr_va.get().replace(',', '.'))
+        
+        # Calculate insalubridade and periculosidade
+        insalubridade = 0
+        periculosidade = 0
+        if var_ins.get() == 1:
+            insalubridade = salario * 0.30
+        if var_per.get() == 1:
+            periculosidade = 1420 * 0.20
+       
+        comissao = float(entry_comissao.get().replace(',', '.')) if var_comissao.get() == 1 else 0
+        plr = (salario * 2) / 12
+        gym_pass = tabela_beneficios['GYM_PASS_VALOR'].iloc[0]
+        optum = tabela_beneficios['OPTUM'].iloc[0]
+        seguro_de_vida_valor = (salario*20)*0.270043/1000
+
+        # adicional noturno:
+        adicional_not_carga_horaria = tabela_beneficios['CARGA_HORARIA'].iloc[0] if var_adicional_not.get() == 1 else 0
+        adicional_not_horas_trabalhadas = tabela_beneficios['HORAS_TRABALHADAS'].iloc[0] if var_adicional_not.get() == 1 else 0
+        adicional_not_percent = tabela_beneficios['ADICIONAL_NOTURNO_PERCENT'].iloc[0] if var_adicional_not.get() == 1 else 0
+        valor_hora = float(salario / adicional_not_carga_horaria) if var_adicional_not.get() == 1 else 0
+        valor_horas_trabalhadas = float(valor_hora * adicional_not_horas_trabalhadas)
+        adicional_not_valor = float(valor_horas_trabalhadas * (adicional_not_percent / 100))
+       
+       
+        vale_combustivel = tabela_beneficios['VALE_COMBUSTIVEL'].iloc[0] if cargo in ['Presidente', 'Diretor'] else 0
+        valor_locacao_carro = obter_valor_coluna(matricula, 'LOCACAO_VEICULO') if cargo in ['Presidente', 'Diretor'] else 0
+
+        previdencia_percent = float(entry_previdencia.get().replace(',', '.')) if var_previdencia.get() == 1 else 0
+        previdencia_valor = salario * (previdencia_percent / 100)
+
+        salario_base = round(float(salario + comissao + adicional_not_valor + insalubridade+ periculosidade ),2)
+        beneficios_totais =  round(float(vt_valor + vr_va + assistencia_medica + assistencia_odontologica + plr + previdencia_valor + seguro_de_vida_valor + gym_pass + optum + valor_locacao_carro + vale_combustivel),2)
+
+        remuneracao = (salario + vt_valor + vr_va + comissao + adicional_not_valor + assistencia_medica + assistencia_odontologica + plr + previdencia_valor + seguro_de_vida_valor + gym_pass + optum + valor_locacao_carro + vale_combustivel + insalubridade + periculosidade )
+
+        impostos = salario_base * 0.3680
+        impostos_str = f"{impostos:.2f}".replace('.', ',')
+        
+        if assistencia_medica is None:
+            assistencia_medica = 0
+        if assistencia_odontologica is None:
+            assistencia_odontologica = 0
+
+        # if assistencia_medica == 0:
+        #     resultado_medico.config(bootstyle=SECONDARY)
+        # else:
+        #     resultado_medico.config(bootstyle=SUCCESS)
+
+        # if assistencia_odontologica == 0:
+        #     resultado_odontologico.config(bootstyle=SECONDARY)
+        # else:
+        #     resultado_odontologico.config(bootstyle=SUCCESS)
+
+        # resultado_locacao_carro.config(text="")
+        # resultado_vale_combustivel.config(text="")
+
+        assistencia_medica_str = f"{assistencia_medica:.2f}".replace('.', ',')
+        assistencia_odontologica_str = f"{assistencia_odontologica:.2f}".replace('.', ',')
+        previdencia_valor_str = f"{previdencia_valor:.2f}".replace('.', ',')
+        plr_str = f"{plr:.2f}".replace('.', ',')
+        seguro_de_vida_valor_str = f"{seguro_de_vida_valor:.2f}".replace('.', ',')
+        adicional_not_valor_str = f"{adicional_not_valor:.2f}".replace('.', ',')
+        gym_pass_str = f"{gym_pass:.2f}".replace('.', ',')
+        optum_str = f"{optum:.2f}".replace('.', ',')
+        remuneracao_str = f"{remuneracao:.2f}".replace('.', ',')
+        vale_combustivel_str = f"{vale_combustivel:.2f}".replace('.',',')
+        valor_locacao_carro_str = f"{valor_locacao_carro:.2f}".replace('.',',')
+
+        salario_base_str = f"{salario_base:.2f}".replace('.',',')
+        beneficios_totais_str = f"{beneficios_totais:.2f}".replace('.',',')
+
+        col_beneficios.config
+        # resultado_medico.config(text=f"Plano médico: R$ {assistencia_medica_str}")
+        # resultado_odontologico.config(text=f"Plano odontológico: R$ {assistencia_odontologica_str}")
+        # resultado_plr.config(text=f"PLR: R$ {plr_str}")
+        # resultado_seguro_de_vida.config(text=f"Seguro de vida: R$ {seguro_de_vida_valor_str}")
+        # resultado_adicional_not.config(text=f"Adicional noturno ({adicional_not_percent}%): R$ {adicional_not_valor_str}")
+        # resultado_gym_pass.config(text=f"Gympass: R$ {gym_pass_str}")
+        # resultado_optum.config(text=f"Hoya Care: R$ {optum_str}")
+        # resultado_previdencia.config(text=f"Prev.Privada ({previdencia_percent:.0f}%): R$ {previdencia_valor_str}")
+        # if cargo in ['Presidente', 'Diretor']:
+        #     resultado_locacao_carro.config(text=f" carro: R$ {valor_locacao_carro_str}".replace('.', ','))
+        #     resultado_vale_combustivel.config(text=f"Vale combustível: R$ {vale_combustivel_str}".replace('.', ','))
+        # else:
+        #     pass
+        
+        porcentagem_dinheiro = round( (salario_base / remuneracao) * 100, ) # arredonda para duas casas decimais
+        porcentagem_beneficios = round( (beneficios_totais / remuneracao) * 100, )
+        resultado_salario.config(text=f"Total em Dinheiro: R$ {salario_base_str} ({round((salario_base / remuneracao) * 100, )}%)")
+        resultado_beneficios.config(text=f"Total em Benefícios: R$ {beneficios_totais_str} ({round((beneficios_totais / remuneracao) * 100, )}%)")
+        resultado_remuneracao.config(text=f"Sua Remuneração é: R$ {remuneracao_str}", 
+                             font=("Helvetica", 12, "bold"), 
+                             foreground="green")
+        resultado_impostos = ttk.Label(root, text=f"Impostos:(custo HOYA) R$ {impostos_str}", font=fonte, foreground="red")
+        resultado_impostos.grid(row=17, column=0, columnspan=2, sticky="w", padx=15, pady=5)
+        
+        def abrir_dashboard():
+
+            # Cria uma nova janela
+            dashboard = tk.Toplevel(root)
+            dashboard.title("Detalhes da Remuneração")
+
+            # Dados para os gráficos
+            beneficios = {
+                "Vale transporte": vt_valor,
+                "Prev.Privada": previdencia_valor,
+                "VR/VA": vr_va,
+                "Assistência Médica": assistencia_medica,
+                "Assistência Odontológica": assistencia_odontologica,
+                "PLR": plr,
+                "Seguro de Vida": seguro_de_vida_valor,
+                "Gympass": gym_pass,
+                "Hoya Care": optum,
+            }
+
+            if cargo in ['Presidente', 'Diretor']:
+                beneficios.update({
+                    " Carro": valor_locacao_carro,
+                    "Vale Combustível": vale_combustivel,
+                })
+
+            # Dados para os gráficos
+            total_remuneracao = remuneracao
+            beneficios_totais = sum(value for key, value in beneficios.items())
+            salario_base = salario + adicional_not_valor + comissao + insalubridade + periculosidade  
+            sizes_pie = [salario_base, beneficios_totais]           
+            labels_pie = ['Total em Dinheiro', 'Total em Benefícios']
+            colors_pie = ['#ff9999','#66b3ff']
+            
+            # Remove o Total em Dinheiro do gráfico de barras
+            beneficios['Total em Dinheiro'] = salario_base  # Re-adiciona o salário base para o gráfico de pizza
+            sorted_beneficios = dict(sorted(beneficios.items(), key=lambda item: item[1], reverse=True))
+            beneficios_names = list(sorted_beneficios.keys())
+            beneficios_values = list(sorted_beneficios.values())
+            percentages = [value / total_remuneracao * 100 for value in beneficios_values]
+
+            # Função para formatação das etiquetas do gráfico de pizza
+            def func(pct, allvalues):
+                absolute = round(pct / 100. * sum(allvalues), ) # Arredonda para 2 casas decimais
+                return f'R$ {absolute:.2f}\n({round(pct, )}%)' # Arredonda o percentual também
+
+
+            # Cria a figura e os eixos
+            fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 12), gridspec_kw={'height_ratios': [1, 2]})
+
+            # Gráfico de pizza
+            wedges, texts, autotexts = ax1.pie(sizes_pie, labels=labels_pie, colors=colors_pie, autopct=lambda pct: func(pct, sizes_pie), startangle=140)
+            ax1.axis('equal')
+
+            # Personaliza o estilo das etiquetas do gráfico de pizza
+            for text in autotexts:
+                text.set_fontsize(8)
+                text.set_color('black')
+            for text in texts:
+                text.set_fontsize(8)
+                text.set_color('black')
+
+            # Gráfico de barras
+            bars = ax2.bar(beneficios_names, beneficios_values, color='skyblue')
+            ax2.set_xlabel('Benefícios', fontsize=10)
+            ax2.set_ylabel('Valor (R$)', fontsize=10)
+            ax2.set_title(' Remuneração Total', pad=20, fontdict={'weight': 'bold'})
+
+            # Define os ticks e os rótulos
+            ax2.set_xticks(range(len(beneficios_names)))
+            ax2.set_xticklabels(beneficios_names, rotation=45, ha='right', fontsize=8)
+
+            # Adiciona rótulos aos gráficos de barras
+            for bar, percentage in zip(bars, percentages):
+                height = bar.get_height()
+                ax2.text(bar.get_x() + bar.get_width() / 2, height, f'R$ {height:.2f}\n({percentage:.1f}%)',
+                        ha='center', va='bottom', fontsize=9)
+
+            # Ajusta o layout dos gráficos
+            fig.tight_layout()
+
+            # Cria um canvas do Tkinter para o matplotlib
+            canvas = FigureCanvasTkAgg(fig, master=dashboard)
+            canvas.draw()
+            canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+
+            # Atualiza a janela do Tkinter após o fechamento da janela do matplotlib
+            dashboard.update_idletasks()
+            dashboard.update()
+
+            def ajust_resolucao():
+                screen_width = dashboard.winfo_screenwidth()
+                screen_height = dashboard.winfo_screenheight()
+                window_width = int(screen_width * 0.70)
+                window_height = int(screen_height * 0.70)
+                dashboard.geometry(f"{window_width}x{window_height}")
+
+            # Função para ajustar o layout dos gráficos
+            def ajustar_layout():
+                fig.tight_layout()  # Ajusta o layout automaticamente
+                canvas.draw()
+
+            # Ajusta o layout inicial após um pequeno atraso
+            dashboard.after(100, ajustar_layout)
+            dashboard.after(100, ajust_resolucao)
+
+            # Atualiza o canvas quando a janela é redimensionada
+            def on_resize(event):
+                ajustar_layout()
+
+            dashboard.bind("<Configure>", on_resize)
+            
+        # Adiciona o link "Ver detalhes" que abre a janela do dashboard
+        ver_detalhes = ttk.Label(root, text="Ver detalhes", font=('Helvetica', 10, 'underline'), foreground="blue", cursor="hand2")
+        ver_detalhes.grid(row=18, column=0, columnspan=2, sticky="w", padx=15, pady=5)
+        ver_detalhes.bind("<Button-1>", lambda e: abrir_dashboard())
+
+    except ValueError:
+        messagebox.showerror("Entrada inválida", "Por favor, insira valores numéricos válidos (000,00).")
+
+
+def obter_valor_coluna(matricula, coluna):
+    valor = tabela_dados.loc[tabela_dados['MATRICULA'] == matricula, coluna]
+    if not valor.empty and pd.notna(valor.iloc[0]):
+        return valor.iloc[0]
+    else:
+        return 0
+
+def ocultar_vt():
+    if var_vt.get() == 1:
+        entry_vt.config(state="normal", bootstyle="default")
+    else:
+        entry_vt.config(state="disabled", bootstyle="light")
+
+def ocultar_comissao():
+    if var_comissao.get() == 1:
+        entry_comissao.config(state="normal", bootstyle="default")
+    else:
+        entry_comissao.config(state="disabled", bootstyle="light")
+
+def ocultar_previdencia():
+    if var_previdencia.get() == 1:
+        entry_previdencia.config(state="normal", bootstyle="default")
+        # resultado_previdencia.config(bootstyle=SUCCESS)
+    else:
+        entry_previdencia.config(state="disabled", bootstyle="light")
+        # resultado_previdencia.config(bootstyle=SECONDARY)
+
+def validar_previdencia(event=None):
+    try:
+        valor = int(entry_previdencia.get())
+        if valor < 1 or valor > 4:
+            raise ValueError
+    except ValueError:
+        messagebox.showwarning("Valor inválido", "Deve ser informado um percentual entre 1 e 4 para Previdência.")
+        entry_previdencia.delete(0, tk.END)
+
+# def ocultar_adc_noturno():
+#     if var_adicional_not.get() == 1:
+#         resultado_adicional_not.config(bootstyle=SUCCESS)
+#     else:
+#         resultado_adicional_not.config(bootstyle=SECONDARY)
+
+def on_closing():
+    root.quit()
+
+# ===================================================================================
+# ======================== Configurações da Interface gráfica =======================
+# ===================================================================================
+
+# cria a janela principal com ttkbootstrap
+root = ttkb.Window(themename="flatly")
+root.title("Simulador de Remuneração: Saiba como funciona a sua remuneração")
+
+# obtém a largura e altura da tela
+screen_width = root.winfo_screenwidth()
+screen_height = root.winfo_screenheight()
+
+# define a porcentagem desejada da tela (exemplo: 50%)
+percent_width = 0.30
+percent_height = 0.75
+
+# calcula o tamanho da janela
+window_width = int(screen_width * percent_width)
+window_height = int(screen_height * percent_height)
+
+# define a geometria da janela com base nos cálculos
+root.geometry(f"{window_width}x{window_height}")
+root.resizable(False, False)
+
+# carregar e definir o ícone da janela
+try:
+    icone = tk.PhotoImage(file=ICONE_JANELA)
+    root.iconphoto(False, icone)
+except Exception as e:
+    pass
+
+# define a fonte padrão
+fonte = font.Font(family="Helvetica", size=10)
+fonte_negrito = font.Font(family="Helvetica", size=10, weight='bold')
+largura_entry = 30
+
+
+# ===================================================================================
+# ================================ Interface gráfica ================================
+# ===================================================================================
+
+# Matrícula
+ttk.Label(root, text="Matrícula:", font=fonte).grid(row=0, column=0, sticky="w", padx=15, pady=5)
+entry_matricula = ttk.Entry(root, width=largura_entry)
+entry_matricula.grid(row=0, column=1, sticky="w", padx=60, pady=5, columnspan=2)
+#entry_matricula.bind('<FocusOut>', lambda event: ocultar_locacao_carro_e_vale_combustivel())
+
+ttk.Label(root, text="Informe os valores mensais abaixo", font=('Helvetica', 10, 'bold')).grid(row=1, column=0, sticky="w", columnspan=2, padx=15, pady=5)
+
+# Salário
+ttk.Label(root, text="Salário (R$):", font=fonte).grid(row=2, column=0, sticky="w", padx=15, pady=5)
+entry_salario = ttk.Entry(root, width=largura_entry, validate="key", validatecommand=(root.register(lambda s: len(s) <= 20), '%P'))
+entry_salario.grid(row=2, column=1, sticky="w", padx=60, pady=5, columnspan=2)
+
+# VT
+var_vt = tk.IntVar()
+label_vt = ttk.Checkbutton(root, text="Vale Transporte VT (R$):", variable=var_vt, command=ocultar_vt).grid(row=3, column=0, columnspan=2, sticky="w", padx=15, pady=5)
+entry_vt = ttk.Entry(root, width=largura_entry)
+entry_vt.grid(row=3, column=1, sticky="w", padx=60, pady=5, columnspan=2)
+entry_vt.config(state="disabled")  # Inicialmente desabilitado
+
+# Comissão
+var_comissao = tk.IntVar()
+label_comissao = ttk.Checkbutton(root, text="Comissão/Premiação (R$): ", variable=var_comissao, command=ocultar_comissao).grid(row=4, column=0, columnspan=2, sticky="w", padx=15, pady=5)
+entry_comissao = ttk.Entry(root, width=largura_entry)
+entry_comissao.grid(row=4, column=1, sticky="w", padx=60, pady=5, columnspan=2)
+entry_comissao.config(state="disabled")  # Inicialmente desabilitado
+
+# Previdência
+var_previdencia = tk.IntVar()
+label_previdencia = ttk.Checkbutton(root, text="Prev.Privada (%): ", variable=var_previdencia, command=ocultar_previdencia).grid(row=5, column=0, columnspan=2, sticky="w", padx=15, pady=5)
+entry_previdencia = ttk.Entry(root, width=largura_entry)
+entry_previdencia.grid(row=5, column=1, sticky="w", padx=60, pady=5, columnspan=2)
+entry_previdencia.config(state="disabled")  # Inicialmente desabilitado
+entry_previdencia.bind("<FocusOut>", validar_previdencia)
+
+# Adicional noturno
+var_adicional_not = tk.IntVar()
+label_adicional_noturno = ttk.Checkbutton(root, text="Adicional noturno", variable=var_adicional_not).grid(row=6, column=0, columnspan=2, sticky="w", padx=15, pady=5)
+
+# VR/VA
+ttk.Label(root, text="Valor do VR/VA (R$):", font=fonte).grid(row=7, column=0, sticky="w", padx=15, pady=5)
+entry_vr_va = ttk.Entry(root, width=largura_entry)
+entry_vr_va.grid(row=7, column=1, sticky="w", padx=60, pady=5, columnspan=2)
+
+# Botão calcular
+ttk.Button(root, text="Calcular remuneração", command=calcular_remuneracao, bootstyle=SUCCESS).grid(row=11, sticky='w', columnspan=2, padx=15, pady=10)
+
+# Valores dos cálculos
+col_salario = ttk.Label(root, text="", font=('Helvetica', 10, 'bold'))
+col_salario.grid(row=12, column=0, columnspan=2, sticky="w", padx=15, pady=5)
+
+resultado_salario = ttk.Label(root, text="", font=fonte)
+resultado_salario.grid(row=13, column=0, columnspan=2, sticky="w", padx=15, pady=5)
+
+col_beneficios = tk.Label(root, text="", bg="white", width=20, height=1)
+col_beneficios.grid(row=14, column=0, columnspan=2, sticky="w", padx=15, pady=5)
+
+resultado_beneficios = ttk.Label(root, text="", font=fonte)
+resultado_beneficios.grid(row=15, column=0, columnspan=2, sticky="w", padx=15, pady=5)
+
+resultado_remuneracao = ttk.Label(root, text="", font=('Helvetica', 10, 'bold'))
+resultado_remuneracao.grid(row=16, column=0, columnspan=2, sticky="w", padx=15, pady=5)
+
+ver_detalhes = ttk.Label(root, text="", font=('Helvetica', 10, 'underline'), foreground="blue", cursor="hand2")
+ver_detalhes.grid(row=17, column=0, columnspan=2, sticky="w", padx=15, pady=5)
+
+mensagem_final = ttk.Label(root, text="Simulador informativo, pode conter leves variações. ", font=('Helvetica', 10, 'bold'), bootstyle=SECONDARY)
+mensagem_final.grid(row=19, column=0, columnspan=2, sticky="w", padx=15, pady=5)
+
+mensagem_final = ttk.Label(root, text="Definição: ", font=('Helvetica', 10, 'bold'), bootstyle=SECONDARY)
+mensagem_final.grid(row=20, column=0, columnspan=2, sticky="w", padx=15, pady=5)
+
+mensagem_final = ttk.Label(root, text="Total em Dinheiro: Sal.base + Comissão/Bonificação + Adicionais ", font=('Helvetica', 10, 'bold'), bootstyle=SECONDARY)
+mensagem_final.grid(row=21, column=0, columnspan=2, sticky="w", padx=15, pady=5)
+
+mensagem_final = ttk.Label(root, text="Total em Benefícios: Plano Médico + Plano dental + PLR + Prev Priv +", font=('Helvetica', 10, 'bold'), bootstyle=SECONDARY)
+mensagem_final.grid(row=22, column=0, columnspan=2, sticky="w", padx=15, pady=5)
+
+mensagem_final = ttk.Label(root, text="Seg.Vida + Hoya Care + Gympass + VT + VR entre outros. ", font=('Helvetica', 10, 'bold'), bootstyle=SECONDARY)
+mensagem_final.grid(row=23, column=0, columnspan=2, sticky="w", padx=15, pady=5)
+
+def limpar_campos():
+    entry_matricula.delete(0, tk.END)
+    entry_salario.delete(0, tk.END)
+    entry_vt.delete(0, tk.END)
+    entry_comissao.delete(0, tk.END)
+    entry_previdencia.delete(0, tk.END)
+    entry_vr_va.delete(0, tk.END)
+
+    resultado_salario.config(text="")
+    resultado_beneficios.config(text="")
+    resultado_remuneracao.config(text="")
+    
+    var_vt.set(0)
+    var_comissao.set(0)
+    var_previdencia.set(0)
+    var_adicional_not.set(0)
+
+    ocultar_vt()
+    ocultar_comissao()
+    ocultar_previdencia()
+    # ocultar_adc_noturno()  # descomente se quiser esconder o rótulo adicional noturno
+
+# Insalubridade
+var_ins = tk.IntVar()
+label_ins = ttk.Checkbutton(root, text="Insalubridade (30% do salário)", variable=var_ins)
+label_ins.grid(row=8, column=0, columnspan=2, sticky="w", padx=15, pady=5)
+
+# Periculosidade
+var_per = tk.IntVar()
+label_per = ttk.Checkbutton(root, text="Periculosidade (20% do sálario mínimo)", variable=var_per)
+label_per.grid(row=9, column=0, columnspan=2, sticky="w", padx=15, pady=5)
+
+ttk.Button(root, text="Limpar informações", command=limpar_campos, bootstyle=DANGER).grid(row=24, column=0, columnspan=2, sticky="w", padx=15, pady=10)
+
+# Adicione as próximas linhas do seu código aqui
+# Define o comportamento ao fechar a janela
+root.protocol("WM_DELETE_WINDOW", on_closing)
+
+root.after(0, ao_abrir_janela)
+root.mainloop()
