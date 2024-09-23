@@ -96,6 +96,17 @@ def calcular_remuneracao():
         previdencia_percent = float(entry_previdencia.get().replace(',', '.')) if var_previdencia.get() == 1 else 0
         previdencia_valor = salario * (previdencia_percent / 100)
 
+        # Insalubridade
+        var_ins = tk.IntVar()
+        label_ins = ttk.Checkbutton(root, text="Insalubridade", variable=var_ins)
+        label_ins.grid(row=8, column=0, columnspan=2, sticky="w", padx=15, pady=5)
+
+        # Periculosidade
+        var_per = tk.IntVar()
+        label_per = ttk.Checkbutton(root, text="Periculosidade", variable=var_per)
+        label_per.grid(row=9, column=0, columnspan=2, sticky="w", padx=15, pady=5)
+
+
         salario_base = round(float(salario + comissao + adicional_not_valor + insalubridade+ periculosidade ),2)
         beneficios_totais =  round(float(vt_valor + vr_va + assistencia_medica + assistencia_odontologica + plr + previdencia_valor + seguro_de_vida_valor + gym_pass + optum + valor_locacao_carro + vale_combustivel),2)
 
@@ -137,7 +148,7 @@ def calcular_remuneracao():
         salario_base_str = f"{salario_base:.2f}".replace('.',',')
         beneficios_totais_str = f"{beneficios_totais:.2f}".replace('.',',')
 
-        col_beneficios.config
+        
         # resultado_medico.config(text=f"Plano médico: R$ {assistencia_medica_str}")
         # resultado_odontologico.config(text=f"Plano odontológico: R$ {assistencia_odontologica_str}")
         # resultado_plr.config(text=f"PLR: R$ {plr_str}")
@@ -422,8 +433,7 @@ col_salario.grid(row=12, column=0, columnspan=2, sticky="w", padx=15, pady=5)
 resultado_salario = ttk.Label(root, text="", font=fonte)
 resultado_salario.grid(row=13, column=0, columnspan=2, sticky="w", padx=15, pady=5)
 
-col_beneficios = tk.Label(root, text="", bg="white", width=20, height=1)
-col_beneficios.grid(row=14, column=0, columnspan=2, sticky="w", padx=15, pady=5)
+
 
 resultado_beneficios = ttk.Label(root, text="", font=fonte)
 resultado_beneficios.grid(row=15, column=0, columnspan=2, sticky="w", padx=15, pady=5)
@@ -470,16 +480,6 @@ def limpar_campos():
     ocultar_comissao()
     ocultar_previdencia()
     # ocultar_adc_noturno()  # descomente se quiser esconder o rótulo adicional noturno
-
-# Insalubridade
-var_ins = tk.IntVar()
-label_ins = ttk.Checkbutton(root, text="Insalubridade (30% do salário)", variable=var_ins)
-label_ins.grid(row=8, column=0, columnspan=2, sticky="w", padx=15, pady=5)
-
-# Periculosidade
-var_per = tk.IntVar()
-label_per = ttk.Checkbutton(root, text="Periculosidade (20% do sálario mínimo)", variable=var_per)
-label_per.grid(row=9, column=0, columnspan=2, sticky="w", padx=15, pady=5)
 
 ttk.Button(root, text="Limpar informações", command=limpar_campos, bootstyle=DANGER).grid(row=24, column=0, columnspan=2, sticky="w", padx=15, pady=10)
 
