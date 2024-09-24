@@ -67,14 +67,15 @@ def calcular_remuneracao():
         vt_valor = float(entry_vt.get().replace(',', '.')) if var_vt.get() == 1 else 0
         vr_va = float(entry_vr_va.get().replace(',', '.'))
         
-        # Calculate insalubridade and periculosidade
-        insalubridade = 0
-        periculosidade = 0
-        if var_ins.get() == 1:
-            insalubridade = salario * 0.30
-        if var_per.get() == 1:
-            periculosidade = 1420 * 0.20
-       
+        # Cálculo de Insalubridade
+        insalubridade_valor = (salario * 0.30) if var_insalubridade.get() == 1 else 0
+        
+        # Cálculo de Periculosidade
+        periculosidade_valor = 1420 * 0.20 if var_periculosidade.get() == 1 else 0
+        # Atualize a string para exibir os valores
+        insalubridade_str = f"{insalubridade_valor:.2f}".replace('.', ',')
+        periculosidade_str = f"{periculosidade_valor:.2f}".replace('.', ',')
+        
         comissao = float(entry_comissao.get().replace(',', '.')) if var_comissao.get() == 1 else 0
         plr = (salario * 2) / 12
         gym_pass = tabela_beneficios['GYM_PASS_VALOR'].iloc[0]
@@ -96,21 +97,13 @@ def calcular_remuneracao():
         previdencia_percent = float(entry_previdencia.get().replace(',', '.')) if var_previdencia.get() == 1 else 0
         previdencia_valor = salario * (previdencia_percent / 100)
 
-        # Insalubridade
-        var_ins = tk.IntVar()
-        label_ins = ttk.Checkbutton(root, text="Insalubridade", variable=var_ins)
-        label_ins.grid(row=8, column=0, columnspan=2, sticky="w", padx=15, pady=5)
-
-        # Periculosidade
-        var_per = tk.IntVar()
-        label_per = ttk.Checkbutton(root, text="Periculosidade", variable=var_per)
-        label_per.grid(row=9, column=0, columnspan=2, sticky="w", padx=15, pady=5)
+        
 
 
-        salario_base = round(float(salario + comissao + adicional_not_valor + insalubridade+ periculosidade ),2)
+        salario_base = round(float(salario + comissao + adicional_not_valor + insalubridade_valor + periculosidade_valor),2)
         beneficios_totais =  round(float(vt_valor + vr_va + assistencia_medica + assistencia_odontologica + plr + previdencia_valor + seguro_de_vida_valor + gym_pass + optum + valor_locacao_carro + vale_combustivel),2)
 
-        remuneracao = (salario + vt_valor + vr_va + comissao + adicional_not_valor + assistencia_medica + assistencia_odontologica + plr + previdencia_valor + seguro_de_vida_valor + gym_pass + optum + valor_locacao_carro + vale_combustivel + insalubridade + periculosidade )
+        remuneracao = (salario + vt_valor + vr_va + comissao + adicional_not_valor + assistencia_medica + assistencia_odontologica + plr + previdencia_valor + seguro_de_vida_valor + gym_pass + optum + valor_locacao_carro + vale_combustivel + insalubridade_valor + periculosidade_valor  )
 
         impostos = salario_base * 0.3680
         impostos_str = f"{impostos:.2f}".replace('.', ',')
@@ -201,7 +194,7 @@ def calcular_remuneracao():
             # Dados para os gráficos
             total_remuneracao = remuneracao
             beneficios_totais = sum(value for key, value in beneficios.items())
-            salario_base = salario + adicional_not_valor + comissao + insalubridade + periculosidade  
+            salario_base = salario + adicional_not_valor + comissao + insalubridade_valor + periculosidade_valor 
             sizes_pie = [salario_base, beneficios_totais]           
             labels_pie = ['Total em Dinheiro', 'Total em Benefícios']
             colors_pie = ['#ff9999','#66b3ff']
@@ -482,6 +475,16 @@ def limpar_campos():
     # ocultar_adc_noturno()  # descomente se quiser esconder o rótulo adicional noturno
 
 ttk.Button(root, text="Limpar informações", command=limpar_campos, bootstyle=DANGER).grid(row=24, column=0, columnspan=2, sticky="w", padx=15, pady=10)
+
+var_insalubridade = tk.IntVar()
+var_periculosidade = tk.IntVar()
+# Insalubridade
+label_insalubridade = ttk.Checkbutton(root, text="Insalubridade (30% do Salário)", variable=var_insalubridade)
+label_insalubridade.grid(row=10, column=0, columnspan=2, sticky="w", padx=15, pady=5)
+
+# Periculosidade
+label_periculosidade = ttk.Checkbutton(root, text="Periculosidade (20% de R$ 1420)", variable=var_periculosidade)
+label_periculosidade.grid(row=9, column=0, columnspan=2, sticky="w", padx=15, pady=5)
 
 # Adicione as próximas linhas do seu código aqui
 # Define o comportamento ao fechar a janela
