@@ -197,7 +197,7 @@ def calcular_remuneracao():
             salario_base = salario + adicional_not_valor + comissao + insalubridade_valor + periculosidade_valor 
             sizes_pie = [salario_base, beneficios_totais]           
             labels_pie = ['Total em Dinheiro', 'Total em Benefícios']
-            colors_pie = ['#ff9999','#66b3ff']
+            colors_pie = ['#0057BC','#D0CBC4']
             
             # Remove o Total em Dinheiro do gráfico de barras
             beneficios['Total em Dinheiro'] = salario_base  # Re-adiciona o salário base para o gráfico de pizza
@@ -225,7 +225,7 @@ def calcular_remuneracao():
                 text.set_color('black')
             for text in texts:
                 text.set_fontsize(8)
-                text.set_color('black')
+                text.set_color('gray')
 
             # Gráfico de barras
             bars = ax2.bar(beneficios_names, beneficios_values, color='skyblue')
@@ -440,7 +440,7 @@ ver_detalhes.grid(row=17, column=0, columnspan=2, sticky="w", padx=15, pady=5)
 mensagem_final = ttk.Label(root, text="Simulador informativo, pode conter leves variações. ", font=('Helvetica', 10, 'bold'), bootstyle=SECONDARY)
 mensagem_final.grid(row=19, column=0, columnspan=2, sticky="w", padx=15, pady=5)
 
-mensagem_final = ttk.Label(root, text="Definição: ", font=('Helvetica', 10, 'bold'), bootstyle=SECONDARY)
+mensagem_final = ttk.Label(root, text="Definições: ", font=('Helvetica', 10, 'bold'), bootstyle=SECONDARY)
 mensagem_final.grid(row=20, column=0, columnspan=2, sticky="w", padx=15, pady=5)
 
 mensagem_final = ttk.Label(root, text="Total em Dinheiro: Sal.base + Comissão/Bonificação + Adicionais ", font=('Helvetica', 10, 'bold'), bootstyle=SECONDARY)
@@ -468,6 +468,8 @@ def limpar_campos():
     var_comissao.set(0)
     var_previdencia.set(0)
     var_adicional_not.set(0)
+    var_periculosidade.set(0)
+    var_insalubridade.set(0)
 
     ocultar_vt()
     ocultar_comissao()
