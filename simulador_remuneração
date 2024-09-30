@@ -78,9 +78,13 @@ def calcular_remuneracao():
         
         comissao = float(entry_comissao.get().replace(',', '.')) if var_comissao.get() == 1 else 0
         plr = (salario * 2) / 12
+       
         gym_pass = tabela_beneficios['GYM_PASS_VALOR'].iloc[0]
         optum = tabela_beneficios['OPTUM'].iloc[0]
         seguro_de_vida_valor = (salario*20)*0.270043/1000
+        # Cálculo de Comissão
+        comissao = float(entry_comissao.get().replace(',', '.')) if var_comissao.get() == 1 else 0
+        comissao_multiplicada = comissao * 0.2  # Multiplica a comissão por 0,2
 
         # adicional noturno:
         adicional_not_carga_horaria = tabela_beneficios['CARGA_HORARIA'].iloc[0] if var_adicional_not.get() == 1 else 0
@@ -100,10 +104,10 @@ def calcular_remuneracao():
         
 
 
-        salario_base = round(float(salario + comissao + adicional_not_valor + insalubridade_valor + periculosidade_valor),2)
+        salario_base = round(float(salario + comissao + adicional_not_valor + insalubridade_valor + periculosidade_valor + comissao_multiplicada),2)
         beneficios_totais =  round(float(vt_valor + vr_va + assistencia_medica + assistencia_odontologica + plr + previdencia_valor + seguro_de_vida_valor + gym_pass + optum + valor_locacao_carro + vale_combustivel),2)
 
-        remuneracao = (salario + vt_valor + vr_va + comissao + adicional_not_valor + assistencia_medica + assistencia_odontologica + plr + previdencia_valor + seguro_de_vida_valor + gym_pass + optum + valor_locacao_carro + vale_combustivel + insalubridade_valor + periculosidade_valor  )
+        remuneracao = (salario + vt_valor + vr_va + comissao + adicional_not_valor + assistencia_medica + assistencia_odontologica + plr + previdencia_valor + seguro_de_vida_valor + gym_pass + optum + valor_locacao_carro + vale_combustivel + insalubridade_valor + periculosidade_valor + comissao_multiplicada )
 
         impostos = salario_base * 0.3680
         impostos_str = f"{impostos:.2f}".replace('.', ',')
@@ -194,7 +198,7 @@ def calcular_remuneracao():
             # Dados para os gráficos
             total_remuneracao = remuneracao
             beneficios_totais = sum(value for key, value in beneficios.items())
-            salario_base = salario + adicional_not_valor + comissao + insalubridade_valor + periculosidade_valor 
+            salario_base = salario + adicional_not_valor + comissao + insalubridade_valor + periculosidade_valor + comissao_multiplicada
             sizes_pie = [salario_base, beneficios_totais]           
             labels_pie = ['Total em Dinheiro', 'Total em Benefícios']
             colors_pie = ['#0057BC','#D0CBC4']
@@ -399,6 +403,8 @@ entry_comissao = ttk.Entry(root, width=largura_entry)
 entry_comissao.grid(row=4, column=1, sticky="w", padx=60, pady=5, columnspan=2)
 entry_comissao.config(state="disabled")  # Inicialmente desabilitado
 
+
+
 # Previdência
 var_previdencia = tk.IntVar()
 label_previdencia = ttk.Checkbutton(root, text="Prev.Privada (%): ", variable=var_previdencia, command=ocultar_previdencia).grid(row=5, column=0, columnspan=2, sticky="w", padx=15, pady=5)
@@ -481,11 +487,11 @@ ttk.Button(root, text="Limpar informações", command=limpar_campos, bootstyle=D
 var_insalubridade = tk.IntVar()
 var_periculosidade = tk.IntVar()
 # Insalubridade
-label_insalubridade = ttk.Checkbutton(root, text="Insalubridade (30% do Salário)", variable=var_insalubridade)
+label_insalubridade = ttk.Checkbutton(root, text="Insalubridade", variable=var_insalubridade)
 label_insalubridade.grid(row=10, column=0, columnspan=2, sticky="w", padx=15, pady=5)
 
 # Periculosidade
-label_periculosidade = ttk.Checkbutton(root, text="Periculosidade (20% de R$ 1420)", variable=var_periculosidade)
+label_periculosidade = ttk.Checkbutton(root, text="Periculosidade", variable=var_periculosidade)
 label_periculosidade.grid(row=9, column=0, columnspan=2, sticky="w", padx=15, pady=5)
 
 # Adicione as próximas linhas do seu código aqui
